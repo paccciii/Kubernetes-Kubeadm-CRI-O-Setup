@@ -111,7 +111,7 @@ Execute the following commands on all the nodes to install required dependencies
     sudo apt-get update -y
     sudo apt-get install -y software-properties-common curl apt-transport-https ca-certificates
 
-    curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key |
+    sudo curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key |
         gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
     echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" |
         tee /etc/apt/sources.list.d/cri-o.list
