@@ -1,4 +1,4 @@
-Kubeadm Setup Prerequisites
+#  Kubeadm Setup Prerequisites
 
 Following are the prerequisites for Kubeadm Kubernetes cluster setup.
 
@@ -11,7 +11,7 @@ Following are the prerequisites for Kubeadm Kubernetes cluster setup.
 4.10.X.X.X/X network range with static IPs for master and worker nodes. We will be using the 192.x.x.x series as the pod network range that will be used by the Calico network plugin. Make sure the Node IP range and pod IP range don’t overlap
 
 
-Kubeadm kubernetes cluster port requirements
+# Kubeadm kubernetes cluster port requirements
 If You are setting up the kubernetes cluster in a cloud platform then follow this firewall table
 
 Control-plane node(s)
@@ -48,7 +48,7 @@ for worker node:
     sudo ufw allow 10250/tcp
     sudo ufw allow 30000:32767/tcp
 
-Following are the high-level steps involved in setting up a kubeadm-based Kubernetes cluster.
+# Following are the high-level steps involved in setting up a kubeadm-based Kubernetes cluster.
 
 1. Install container runtime on all nodes- We will be using cri-o.
 
@@ -71,7 +71,7 @@ Following are the high-level steps involved in setting up a kubeadm-based Kubern
 
 
 
-Step 1: Enable iptables Bridged Traffic on all the Nodes
+# Step 1: Enable iptables Bridged Traffic on all the Nodes
 
 Execute the following commands on all the nodes for IPtables to see bridged traffic. Here we are tweaking some kernel parameters and setting them using sysctl.
 
@@ -83,14 +83,21 @@ Execute the following commands on all the nodes for IPtables to see bridged traf
     sudo modprobe overlay
     sudo modprobe br_netfilter
 
-# sysctl params required by setup, params persist across reboots
+sysctl params required by setup, params persist across reboots
+
     cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
     net.bridge.bridge-nf-call-iptables  = 1
     net.bridge.bridge-nf-call-ip6tables = 1
     net.ipv4.ip_forward                 = 1
     EOF
 
-# Apply sysctl params without rebootStep 2: Disable swap on all the Nodes
+Apply sysctl params without reboot
+
+    sudo sysctl --system
+
+
+
+# Step 2: Disable swap on all the Nodes
 
 For kubeadm to work properly, you need to disable swap on all the nodes using the following command.
 
@@ -101,85 +108,73 @@ For kubeadm to work properly, you need to disable apparmor on all the nodes usin
     sudo service apparmor status
     sudo service apparmor stop
     
-Step 3: Install CRI-O Runtime On All The Nodes
+# Step 3: Install CRI-O Runtime On All The Nodes
 
 We will be using CRI-O instead of Docker for this setup as Kubernetes deprecated Docker engine
 
 Execute the following commands on all the nodes to install required dependencies and the latest version of CRIO.
 
 
-    sudo apt-get update -y
-    sudo apt-get install -y software-properties-common curl apt-transport-https ca-certificates
+      sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list <<< "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/ /"
+      sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:1.28.list <<< "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.28/xUbuntu_22.04/ /"
 
-    sudo curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key |
-        gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" |
-        tee /etc/apt/sources.list.d/cri-o.list
+      curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:1.28/xUbuntu_22.04/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
+      curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_22.04/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
 
-    sudo apt-get update -y
-    sudo apt-get install -y cri-o
+      sudo apt-get update
+      sudo apt-get install cri-o cri-o-runc -y
 
-    sudo systemctl daemon-reload
-    sudo systemctl enable crio --now
-    sudo systemctl start crio.service
-    sudo sysctl --system
+      sudo systemctl daemon-reload
+      sudo systemctl enable crio --now
 
 
-Install crictl.
-
-    VERSION="v1.28.0"
-    wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$VERSION/crictl-$VERSION-linux-amd64.tar.gz
-    sudo tar zxvf crictl-$VERSION-linux-amd64.tar.gz -C /usr/local/bin
-    rm -f crictl-$VERSION-linux-amd64.tar.gz
-
-
-Step 4: Install Kubeadm & Kubelet & Kubectl on all Nodes
+# Step 4: Install Kubeadm & Kubelet & Kubectl on all Nodes
 
 
 Download the GPG key for the Kubernetes APT repository on all the nodes.
 
-    KUBERNETES_VERSION=1.29
+      sudo apt-get install -y apt-transport-https ca-certificates curl gpg
 
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v$KUBERNETES_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v$KUBERNETES_VERSION/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+      sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-1-28-apt-keyring.gpg <<< "$(curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key)"
+      echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-1-28-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes-1.28.list
+
+      sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-1-29-apt-keyring.gpg <<< "$(curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key)"
+      echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-1-29-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes-1.29.list
+
 
 Update apt repo
+      sudo apt-get update -y
 
-    sudo apt-get update -y
+ You can use the following commands to find the latest versions. Install the first version in 1.29 so that you can practice cluster upgrade task.
 
-You can use the following commands to find the latest versions. Install the first version in 1.29 so that you can practice cluster upgrade task.
-
-    apt-cache madison kubeadm | tac
-
+      apt-cache madison kubeadm | tac     
 Specify the version as shown below. Here I am using 1.29.0-1.1(It is not suitable to use the latest version since it will be having bugs)
 So we will go with the 1.29.0-1.1 version
 
-    sudo apt-get install -y kubelet=1.29.0-1.1 kubectl=1.29.0-1.1 kubeadm=1.29.0-1.1
+      sudo apt-get install -y kubelet="1.29.0-1.1" kubectl="1.29.0-1.1" kubeadm="1.29.0-1.1"
 
+Update apt repo, again:
+
+      sudo apt-get update -y
 
 Add hold to the packages to prevent upgrades.
 
-    sudo apt-mark hold kubelet kubeadm kubectl
-
+      sudo apt-mark hold kubelet kubeadm kubectl
 
 Now we have all the required utilities and tools for configuring Kubernetes components using kubeadm.
 
-Add the node IP to KUBELET_EXTRA_ARGS.
+Add the node IP to KUBELET_EXTRA_ARGS. For that install jq:
 
-    sudo apt-get install -y jq
-    local_ip="$(ip --json addr show eth0 | jq -r '.[0].addr_info[] | select(.family == "inet") | .local')"
-    cat > /etc/default/kubelet << EOF
-    KUBELET_EXTRA_ARGS=--node-ip=$local_ip
-    EOF
+      sudo apt-get install -y jq
+      sudo sh -c 'local_ip="$(ip --json addr show eth0 | jq -r .[0].addr_info[] | grep "\"family\":\"inet\"" | cut -d "\"" -f 4)"; echo "KUBELET_EXTRA_ARGS=--node-ip=$local_ip" > /etc/default/kubelet'
 
 
-Step 5: Initialize Kubeadm On Master Node To Setup Control Plane
+# Step 5: Initialize Kubeadm On Master Node To Setup Control Plane
 
 
 Set the following environment variables. Replace 10.1.0.220 with the IP of your master node.
 
-    IPADDR="10.1.0.220"
+    IPADDR="$(ip addr show eth0 | awk '/inet / {print $2}' | cut -d/ -f1)"
     NODENAME=$(hostname -s)
     POD_CIDR="192.168.0.0/16"
 
@@ -201,7 +196,7 @@ You can get the cluster info using the following command.
 
     kubectl cluster-info 
 
-Step 6: Join Worker Nodes To Kubernetes Master Node
+# Step 6: Join Worker Nodes To Kubernetes Master Node
 
 We have set up cri-o, kubelet, and kubeadm utilities on the worker nodes as well.
 
@@ -236,7 +231,7 @@ In the above command, the ROLE is <none> for the worker nodes. You can add a lab
 You can further add more nodes with the same join command.
 
 
-Step 7: Install Calico Network Plugin for Pod Networking
+# Step 7: Install Calico Network Plugin for Pod Networking
 
 Execute the following commands to install the Calico network plugin operator on the cluster.
 
@@ -246,7 +241,7 @@ After a couple of minutes, if you check the pods in kube-system namespace, you w
 
     kubectl get po -n kube-system
 
-Step 8: Setup Kubernetes Metrics Server
+# Step 8: Setup Kubernetes Metrics Server
 
 Kubeadm doesn’t install metrics server component during its initialization. We have to install it separately.
 
@@ -273,7 +268,7 @@ It will show something like this,
     prashantkubernetesworker01   351m         8%     2029Mi          25%
 
 
-Step 9: Deploy A Sample Nginx Application
+# Step 9: Deploy A Sample Nginx Application
 
 Now that we have all the components to make the cluster and applications work, let’s deploy a sample Nginx application and see if we can access it over a NodePort
 
