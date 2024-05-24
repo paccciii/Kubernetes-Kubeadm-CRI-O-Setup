@@ -218,7 +218,7 @@ Now execute the kubectl command from the master node to check if the node is add
 
 Example output,
 
-    sadmin@prashantkubernetesmaster01:~$ kubectl get nodes
+    ubuntu@prashantkubernetesmaster01:~$ kubectl get nodes
     NAME                         STATUS   ROLES           AGE   VERSION
     prashantkubernetesmaster01   Ready    control-plane   14m   v1.29.0
     prashantkubernetesworker01   Ready    <none>          11m   v1.29.0
@@ -247,7 +247,7 @@ Kubeadm doesn’t install metrics server component during its initialization. We
 
 To verify this, if you run the top command, you will see the Metrics API not available error.
 
-    sadmin@prashantkubernetesmaster01:~$ kubectl top nodes
+    ubuntu@prashantkubernetesmaster01:~$ kubectl top nodes
     error: Metrics API not available
 
 To install the metrics server, execute the following metric server manifest file. It deploys metrics server version v0.6.2
@@ -262,7 +262,7 @@ Once the metrics server objects are deployed, it takes a minute for you to see t
 
 It will show something like this,
 
-    sadmin@prashantkubernetesmaster01:~$ kubectl top nodes
+    ubuntu@prashantkubernetesmaster01:~$ kubectl top nodes
     NAME                         CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
     prashantkubernetesmaster01   985m         24%    2410Mi          30%
     prashantkubernetesworker01   351m         8%     2029Mi          25%
