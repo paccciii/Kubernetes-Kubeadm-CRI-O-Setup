@@ -2,7 +2,7 @@
 
 Following are the prerequisites for Kubeadm Kubernetes cluster setup.
 
-1.Minimum two Ubuntu nodes [One master and one worker node]. You can have more worker nodes as per your requirement.
+1.Minimum two Ubuntu x22.04 nodes [One master and one worker node]. You can have more worker nodes as per your requirement.
 
 2.The master node should have a minimum of 2 vCPU and 2GB RAM.
 
